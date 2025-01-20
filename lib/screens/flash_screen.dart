@@ -11,14 +11,24 @@ class FlashScreen extends StatelessWidget {
     });
 
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/logo.png'),
-            const SizedBox(height: 20),
-            const Text('welcome to annisazizah apps'),
-          ],
+      body: Container(
+        color: const Color.fromARGB(255, 160, 210, 252), 
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset('assets/logo.png'),
+              const SizedBox(height: 20),
+              const Text(
+                'Welcome to My To-do-List Apps',
+                style: TextStyle(
+                  color: Colors.white, 
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

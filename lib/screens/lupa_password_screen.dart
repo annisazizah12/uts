@@ -28,57 +28,67 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         title: const Text('Lupa Password'),
         centerTitle: true,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Add the logo at the top
-                Image.asset(
-                  'assets/logo.png', // Ensure the logo image is added to the assets folder
-                  height: 100, // Adjust the logo size as needed
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Masukan email Anda dan tunggu kode untuk dikirimkan.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Masukan Email'),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Email tidak boleh kosong';
-                    } else if (!emailRegex.hasMatch(value)) {
-                      return 'Format email tidak valid';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    // Validate the email input
-                    if (_formKey.currentState!.validate()) {
-                      // If valid, navigate back to the login screen
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+      body: Container(
+        color: const Color.fromARGB(255, 53, 119, 173),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Add the logo at the top
+                  Image.asset(
+                    'assets/logo.png', 
+                    height: 100, 
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Masukan email Anda dan tunggu kode untuk dikirimkan.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white, 
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'Masukan Email',
+                      filled: true,
+                      fillColor: Colors.white, 
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Email tidak boleh kosong';
+                      } else if (!emailRegex.hasMatch(value)) {
+                        return 'Format email tidak valid';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
                             content: Text(
-                                'Kode verifikasi telah dikirim ke email Anda')),
-                      );
-                    }
-                  },
-                  child: const Text('Kirim'),
-                ),
-              ],
+                                'Kode verifikasi telah dikirim ke email Anda'),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Kirim'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

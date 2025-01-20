@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,97 +12,242 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool isGridView = true;
+  final ApiService _apiService = ApiService();
+  late Future<List<dynamic>> _productsFuture;
 
-  final List<String> playlistNames = [
-    'Liked Songs',
-    'On - K-Pop',
-    'Hivi!',
-    'One Direction',
-    'Juicy Luicy'
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _productsFuture = fetchProducts();
+  }
 
-  final List<String> playlistDescriptions = [
-    '287 Song',
-    'BLACKPINK, NCT, TREASURE, AESPA',
-    'Artist',
-    'Artist',
-    'Artist'
-  ];
+  Future<List<dynamic>> fetchProducts() async {
+    final token = await getToken();
+    return _apiService.fetchProducts(token);
+  }
 
-  final List<String> songNames = [
-    'Iglo',
-    'DRIP',
-    'Mean It',
-    'APT',
-    'hey, im tired',
-    'La La La Lost You'
-  ];
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
 
-  final List<String> songDescriptions = [
-    'Artist: KISS OF LIFE, Album: The Album',
-    'Artist: BABYMONSTER, Album: DRIP',
-    'Artist: Lauv, Album: ~how im feeling',
-    'Artist: ROSE, Bruno Mars, Album: APT',
-    'Artist: Arash Buana, Album: life update',
-    'Artist: 88rising, NIKI, Album: Head In The Clouds II'
-  ];
+  void refreshProducts() {
+    setState(() {
+      _productsFuture = fetchProducts();
+    });
+  }
 
-  final List<Color> gridItemColors = [
-    const Color.fromARGB(255, 231, 154, 148),
-    const Color.fromARGB(255, 133, 181, 219),
-    const Color.fromARGB(255, 152, 218, 154),
-    const Color.fromARGB(255, 245, 237, 167),
-    const Color.fromARGB(255, 219, 172, 228)
-  ];
+  void showAddProductDialog() {
+    final nameController = TextEditingController();
+    final priceController = TextEditingController();
+    final descController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add List'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: priceController,
+              decoration: const InputDecoration(labelText: 'Date'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(labelText: 'Description'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final token = await getToken();
+              final success = await _apiService.addProduct(
+                token,
+                nameController.text,
+                double.parse(priceController.text),
+                descController.text,
+              );
+              if (success) {
+                refreshProducts();
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void showEditProductDialog(Map<String, dynamic> product) {
+    final nameController = TextEditingController(text: product['prod_name']);
+    final priceController = TextEditingController(text: product['prod_price'].toString());
+    final descController = TextEditingController(text: product['prod_desc']);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Product'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: priceController,
+              decoration: const InputDecoration(labelText: 'Date'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(labelText: 'Description'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final token = await getToken();
+              final success = await _apiService.updateProduct(
+                token,
+                product['id'],
+                nameController.text,
+                double.parse(priceController.text),
+                descController.text,
+              );
+              if (success) {
+                refreshProducts();
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
+        title: const Text('My To-do-List'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.pushNamed(context, '/account');
-            },
+            icon: const Icon(Icons.add),
+            onPressed: showAddProductDialog,
           ),
         ],
       ),
-      body: Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              'Your Playlists',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          SizedBox(
-            height: 200,
-            child: buildGridView(),
-          ),
-          const SizedBox(height: 10),
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              'Liked Songs',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Expanded(
-            child: buildListView(),
-          ),
-        ],
+      body: Container(
+        color: const Color.fromARGB(255, 160, 210, 252),
+        child: FutureBuilder<List<dynamic>>(
+          future: _productsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else {
+              final products = snapshot.data ?? [];
+
+              return Column(
+                children: [
+                  SizedBox(
+                    height: 200, // Fixed height for the GridView
+                    child: GridView.builder(
+                      scrollDirection: Axis.horizontal,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 1, // Single row
+                        childAspectRatio: 1.5, // Adjust aspect ratio
+                        mainAxisSpacing: 8.0,
+                      ),
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        return Card(
+                          color: Colors.white,
+                          elevation: 4,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Center(
+                              child: Text(
+                                product['prod_name'],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  // ListView for vertical scrolling
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        return ListTile(
+                          title: Text(product['prod_name']),
+                          subtitle: Text(
+                            '${product['prod_desc']}',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () => showEditProductDialog(product),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () async {
+                                  final token = await getToken();
+                                  final success = await _apiService.deleteProduct(token, product['id']);
+                                  if (success) {
+                                    refreshProducts();
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            }
+          },
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.account_circle), label: 'Account'),
+          BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: 'Account'),
           BottomNavigationBarItem(icon: Icon(Icons.logout), label: 'Logout'),
         ],
         onTap: (index) {
@@ -110,57 +258,6 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
       ),
-    );
-  }
-
-  Widget buildGridView() {
-    return GridView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.all(8.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 1,
-        mainAxisSpacing: 8.0,
-        childAspectRatio: 1.1,
-      ),
-      itemCount: playlistNames.length,
-      itemBuilder: (context, index) {
-        Color itemColor = gridItemColors[index % gridItemColors.length];
-        return Card(
-          color: itemColor,
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  playlistNames[index],
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  playlistDescriptions[index],
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget buildListView() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(8.0),
-      itemCount: songNames.length,
-      itemBuilder: (context, index) {
-        return ListTile(
-          leading: const Icon(Icons.music_note),
-          title: Text(songNames[index]),
-          subtitle: Text(songDescriptions[index]),
-        );
-      },
     );
   }
 }
